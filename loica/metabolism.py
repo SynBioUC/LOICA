@@ -20,7 +20,7 @@ class Metabolism:
         return(od)
 
     @classmethod
-    def profile(cls, biomass= gompertz, gr= gompertz_growth_rate, t=0):
+    def profile(cls, biomass, gr, t=0):
         return gr * 10 + 1
 
 

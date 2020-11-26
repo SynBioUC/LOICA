@@ -5,23 +5,29 @@ from scipy.optimize import least_squares
 from .receiver import *
 
 class Not:
-    def __init__(self, input, output, a, b, K, n, profile=None):
+    def __init__(self, input, output, a, b, K, n, tau_on, tau_off, profile=None):
         self.a = a
         self.b = b
         self.K = K
         self.n = n
+        self.tau_on = tau_on
+        self.tau_off = tau_off
         self.input = input
         self.output = output
         if not profile:
             def profile(t):
                 return 1
         self.profile = profile
+        self.y = 0
         
     def expression_rate(self, t, dt):
         input_repressor = self.input.concentration
         r = (input_repressor/self.K)**self.n
-        expression_rate = self.profile(t) * ( self.a + self.b*r ) / (1 + r)
-        return expression_rate
+        y_ss = self.profile(t) * ( self.a + self.b*r ) / (1 + r)
+        dy = y_ss - self.y
+        tau = tau_on if dy>0 else tau_off
+        self.y += tau * dy * dt
+        return self.y
 
     def forward_model_growth(
         self,
@@ -64,6 +70,9 @@ class Not:
         profile_A=[1]*100,
         gamma=0,
         p0_1=0, p0_2=0,
+        y0=0,
+        tau_on=1,
+        tau_off=1,
         nt=100
     ):
         p2_list,A_list,t_list = [],[],[]
@@ -80,7 +89,7 @@ class Not:
             for tt in range(sim_steps):
                 time = (t + tt/sim_steps) * Dt
                 a = (A/K_A)**n_A
-                nextp1 = p1 + (prof_A * (a_A + b_A * a) /(1 + a) - gamma*p1 - mu*p1) * Dt/sim_steps
+                nextp1 = p1 + y_ss * Dt/sim_steps
                 p = (p1/K_i)**n_i
                 nextp2 = p2 + ( od * prof_j * (1 + b_j*p) / ( 1 + p )) * Dt/sim_steps
                 p1,p2 = nextp1,nextp2

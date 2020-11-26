@@ -51,8 +51,7 @@ class Source:
             means = np.linspace(t.min(), t.max(), n_gaussians)
             vars = [(t.max()-t.min())/n_gaussians]*n_gaussians 
             p0 = x[0]
-            gamma = x[1]
-            heights = x[2:]
+            heights = x[1:]
             profile = np.zeros_like(t)
             for mean,var,height in zip(means, vars, heights):
                 gaussian = height * np.exp(-(t-mean)*(t-mean) / var / 2) / np.sqrt(2 * np.pi * var)
@@ -63,7 +62,7 @@ class Source:
                         profile=profile,
                         nt=nt,
                         p0=p0,
-                        gamma=gamma
+                        gamma=0
                     )
             model = p[1:]
             tikhonov = heights * epsilon
@@ -97,8 +96,8 @@ class Source:
         nt = len(t)
 
         # Bounds for fitting
-        lower_bounds = [0] + [0] + [0]*n_gaussians
-        upper_bounds = [1e8] + [5] + [1e8]*n_gaussians
+        lower_bounds = [0] + [0]*n_gaussians
+        upper_bounds = [1e8] + [1e8]*n_gaussians
         bounds = [lower_bounds, upper_bounds]
         '''
             gamma = x[0]
@@ -113,18 +112,15 @@ class Source:
                     )
         res = least_squares(
                 self.residuals_func, 
-                [0] + [0] + [100]*n_gaussians, 
+                [0] + [100]*n_gaussians, 
                 bounds=bounds
                 )
         self.res = res
 
-        self.p0 = res.x[0]
-        self.gamma = res.x[1]
-
         profile = np.zeros_like(t)
         means = np.linspace(t.min(), t.max(), n_gaussians)
         vars = [(t.max()-t.min())/n_gaussians] * n_gaussians 
-        heights = res.x[2:]
+        heights = res.x[1:]
         for mean,var,height in zip(means, vars, heights):
             gaussian = height * np.exp(-(t-mean)*(t-mean) / var / 2) / np.sqrt(2 * np.pi * var)
             profile = profile + gaussian
